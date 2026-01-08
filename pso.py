@@ -49,7 +49,7 @@ class PSO:
             p.optim_personal_pozitie = np.copy(p.pozitie)
             p.optim_personal_cost = p.cost
             self.roi.append(p)
-        
+
     def get_optim_social(self, index_particula):
         if self.modul == 'gbest':
             best_pos = self.roi[0].optim_personal_pozitie
@@ -83,6 +83,15 @@ class PSO:
         self.initializare()
         istoric_pozitii = []
 
+        optim_social_pozitie = np.copy(self.roi[0].optim_personal_pozitie)
+        optim_social_cost = self.roi[0].optim_personal_cost
+
+        for p in self.roi:
+            if p.optim_personal_cost < optim_social_cost:
+                optim_social_cost = p.optim_personal_cost
+                optim_social_pozitie = np.copy(p.optim_personal_pozitie)
+
+        
         for t in range(self.nr_iteratii):
             frame_curent = []
             for p in self.roi:
