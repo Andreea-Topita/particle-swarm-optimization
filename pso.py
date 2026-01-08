@@ -49,5 +49,72 @@ class PSO:
             p.optim_personal_pozitie = np.copy(p.pozitie)
             p.optim_personal_cost = p.cost
             self.roi.append(p)
+        
+    def get_optim_social(self, index_particula):
+        if self.modul == 'gbest':
+            best_pos = self.roi[0].optim_personal_pozitie
+            best_cost = self.roi[0].optim_personal_cost
+            
+            for p in self.roi:
+                if p.optim_personal_cost < best_cost:
+                    best_cost = p.optim_personal_cost
+                    best_pos = np.copy(p.optim_personal_pozitie)
+            return best_pos
+            
+        elif self.modul == 'lbest':
+            vecini = []
+            indices = [index_particula - 1, index_particula, index_particula + 1]
+            
+            best_pos = self.roi[index_particula].optim_personal_pozitie
+            best_cost = self.roi[index_particula].optim_personal_cost
+            
+            for idx in indices:
+                real_idx = idx % self.nr_particule
+                p = self.roi[real_idx]
+                
+                if p.optim_personal_cost < best_cost:
+                    best_cost = p.optim_personal_cost
+                    best_pos = np.copy(p.optim_personal_pozitie)
+            return best_pos
 
-   
+        return np.zeros(self.dim)
+
+    def optimizare(self):
+        self.initializare()
+        istoric_pozitii = []
+
+        for t in range(self.nr_iteratii):
+            frame_curent = []
+            for p in self.roi:
+                frame_curent.append(np.copy(p.pozitie))
+            istoric_pozitii.append(frame_curent)
+
+            for i, p in enumerate(self.roi):
+                optim_social = self.get_optim_social(i)
+                r1 = np.random.uniform(0, 1, self.dim)
+                r2 = np.random.uniform(0, 1, self.dim)
+                
+                #v = w*v + c1*r1*(pbest-x) + c2*r2*(social-x)
+                t_inertie = self.w * p.viteza
+                t_cognitiv = self.c1 * r1 * (p.optim_personal_pozitie - p.pozitie)
+                t_social = self.c2 * r2 * (optim_social - p.pozitie)
+                
+                p.viteza = t_inertie + t_cognitiv + t_social
+                for d in range(self.dim):
+                    p.viteza[d] = self.limiteaza(p.viteza[d], -self.v_max, self.v_max)
+                p.pozitie = p.pozitie + p.viteza
+                
+                for d in range(self.dim):
+                    p.pozitie[d] = self.limiteaza(p.pozitie[d], self.x_min, self.x_max)
+                
+                p.cost = self.func(p.pozitie)
+                
+                if p.cost < p.optim_personal_cost:
+                    p.optim_personal_cost = p.cost
+                    p.optim_personal_pozitie = np.copy(p.pozitie)
+                    
+                    if p.cost < optim_social_cost:
+                        optim_social_cost = p.cost
+                        optim_social_pozitie = np.copy(p.pozitie)
+
+        return optim_social_pozitie, optim_social_cost, istoric_pozitii
