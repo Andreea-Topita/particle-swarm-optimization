@@ -6,6 +6,8 @@ class Particula:
         self.viteza = np.zeros(dimensiune)
         self.cost = float('inf')
         self.optim_personal_cost = float('inf')
+        self.optim_personal_pozitie = np.zeros(dimensiune)
+
 
 
 class PSO:
@@ -61,20 +63,35 @@ class PSO:
                     best_pos = np.copy(p.optim_personal_pozitie)
             return best_pos
             
-        elif self.modul == 'lbest':
-            vecini = []
+        elif self.modul == 'lbest_social':
             indices = [index_particula - 1, index_particula, index_particula + 1]
             
-            best_pos = self.roi[index_particula].optim_personal_pozitie
-            best_cost = self.roi[index_particula].optim_personal_cost
+            p_curenta = self.roi[index_particula]
+            best_pos = np.copy(p_curenta.optim_personal_pozitie)
+            best_cost = p_curenta.optim_personal_cost
             
             for idx in indices:
                 real_idx = idx % self.nr_particule
-                p = self.roi[real_idx]
+                p_vecin = self.roi[real_idx]
+                if p_vecin.optim_personal_cost < best_cost:
+                    best_cost = p_vecin.optim_personal_cost
+                    best_pos = np.copy(p_vecin.optim_personal_pozitie)
+            return best_pos
                 
-                if p.optim_personal_cost < best_cost:
-                    best_cost = p.optim_personal_cost
-                    best_pos = np.copy(p.optim_personal_pozitie)
+        elif self.modul == 'lbest_geo':
+            p_curenta = self.roi[index_particula]
+            best_pos = np.copy(p_curenta.optim_personal_pozitie)
+            best_cost = p_curenta.optim_personal_cost
+            
+            RAZA_VECINATATE = 6.0 
+            
+            for p_vecin in self.roi:
+                dist = np.linalg.norm(p_curenta.pozitie - p_vecin.pozitie)
+                
+                if dist < RAZA_VECINATATE:
+                    if p_vecin.optim_personal_cost < best_cost:
+                        best_cost = p_vecin.optim_personal_cost
+                        best_pos = np.copy(p_vecin.optim_personal_pozitie)
             return best_pos
 
         return np.zeros(self.dim)
@@ -98,6 +115,8 @@ class PSO:
                 frame_curent.append(np.copy(p.pozitie))
             istoric_pozitii.append(frame_curent)
 
+            self.w = 0.9 - ((0.9 - 0.4) * t / self.nr_iteratii)
+
             for i, p in enumerate(self.roi):
                 optim_social = self.get_optim_social(i)
                 r1 = np.random.uniform(0, 1, self.dim)
@@ -109,13 +128,15 @@ class PSO:
                 t_social = self.c2 * r2 * (optim_social - p.pozitie)
                 
                 p.viteza = t_inertie + t_cognitiv + t_social
+                
                 for d in range(self.dim):
                     p.viteza[d] = self.limiteaza(p.viteza[d], -self.v_max, self.v_max)
+                
                 p.pozitie = p.pozitie + p.viteza
                 
                 for d in range(self.dim):
                     p.pozitie[d] = self.limiteaza(p.pozitie[d], self.x_min, self.x_max)
-                
+
                 p.cost = self.func(p.pozitie)
                 
                 if p.cost < p.optim_personal_cost:
