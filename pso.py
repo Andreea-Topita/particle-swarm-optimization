@@ -148,3 +148,10 @@ class PSO:
                         optim_social_pozitie = np.copy(p.pozitie)
 
         return optim_social_pozitie, optim_social_cost, istoric_pozitii
+    
+
+
+
+
+
+
